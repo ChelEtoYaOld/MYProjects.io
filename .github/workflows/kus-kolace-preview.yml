@@ -1,0 +1,50 @@
+name: Publish Kus Koláče client preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Prepare the verified static demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://raw.githubusercontent.com/ChelEtoYaOld/kuskolace.io/4a20849dc47852c53c58206ad24b34446af72f1f/docs'
+          mkdir -p _site/kuskolace.io/assets
+          while read -r hash file; do
+            destination="_site/kuskolace.io/$file"
+            curl --fail --silent --show-error --retry 3 "$base/$file" --output "$destination"
+            test "$(git hash-object "$destination")" = "$hash"
+          done <<'FILES'
+            b86d016c0be32fd2ea43b708a91aa4627a374957 assets/11757a17a48c43808d90748ece3ab19b.webp
+            e9f3f04ed257dbf5453978c0c9529a0cd3960647 assets/2ef671270af84318865746e3effb162a.webp
+            1ac629417918fbdf0dd8f3ded9496d706ce3ef31 assets/3eb157ad2e5b4697912221f956fb5dd3.webp
+            282f62831893c899517dc3b088fe5db465562b47 assets/4a8fc8fef3b143ea91b0bb96934f659d.webp
+            655d7b0d08e5a40cec4810fa228511367f1427e5 assets/4d64ffd31a9e4f54a465a3238868e3d9.jpg
+            6fe3f8d5d5bb50f70a81efa76a67690c8a6f5f76 assets/bd51ef7a6cc34368b8b03cd413c8a587.webp
+            7d3eb9ee466b0a326c51181932b01f8f71976ecb assets/c0afac9aad094ffaa52662a8e42844b0.webp
+            b7cbbb7add1d64ff1bf8f0f6c77ad8dc7ded1207 assets/d18c2f03da4f4a36913203f878631880.webp
+            f4afedcdadf0dfd5181738f90189cf75b6cf671b assets/eaad6a5830d14d76a245c62ff88fb833.webp
+            8d5bc63dab03b163142eec9b247165ac81e2b342 assets/favicon.svg
+            03594d383337fb16c3a7b8db971676e07eab85cf assets/fig-pastries.jpg
+            6d6a0e18d480a732c986191420382b52c83c9f08 assets/glazed-buns.jpg
+            3ee40b7b5ba19da00776798c400f5fd62ad2e4dc assets/sugar-buchty.jpg
+            988174da84aed0cc094cffa9f10978eb642ddbb5 index.html
+          FILES
+          cp -R _site/kuskolace.io _site/kuskolace-preview
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
+        id: deployment
